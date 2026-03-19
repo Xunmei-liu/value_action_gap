@@ -86,9 +86,9 @@ For GPT-4o-mini:
 export OPENAI_API_KEY=<your_openai_api_key>
 ```
 
-For Gemma on the UW Hyak cluster, edit `src/tasks/task2/launch.sh` with your own HF token, then:
+For Gemma on the UW Hyak cluster, edit `src/tasks/task2/setup_env.sh` with your own HF token, then:
 ```bash
-source src/tasks/task2/launch.sh
+source src/tasks/task2/setup_env.sh
 ```
 
 ---
@@ -120,27 +120,25 @@ outputs/evaluation/gpt-4o-mini_t2.csv
 
 ```
 src/
-├── dynamic/                                     # GPT-4o-mini dynamic reproduction (ours)
-│   ├── run_dynamic_t1.py                        # Re-run Task 1 via current OpenAI API
-│   ├── run_dynamic_t2.py                        # Re-run Task 2 via current OpenAI API
-│   ├── eval_dynamic_full_rate.py                # Alignment Rate (F1) for dynamic GPT-4o-mini
-│   ├── eval_dynamic_full_distance.py            # Alignment Distance (ℓ₁) for dynamic GPT-4o-mini
-│   ├── eval_dynamic_full_ranking.py             # Alignment Ranking for dynamic GPT-4o-mini
-│   └── eval_dynamic_direction_check.py          # Diagnose Task 2 polarity convention
+├── dynamic/                          # GPT-4o-mini dynamic reproduction (ours)
+│   ├── run_task1.py                  # Re-run Task 1 via current OpenAI API
+│   ├── run_task2.py                  # Re-run Task 2 via current OpenAI API
+│   ├── eval_alignment_rate.py        # Alignment Rate (F1)
+│   ├── eval_alignment_distance.py    # Alignment Distance (ℓ₁)
+│   ├── eval_alignment_ranking.py     # Alignment Ranking
+│   └── eval_direction_check.py       # Diagnose Task 2 polarity convention
 └── tasks/
     ├── task1/
-    │   ├── eval_llm_statement_gemma9b_full.py   # Gemma Task 1 full inference (12 × 11 scenarios)
-    │   └── eval_parallel.py                     # Gemma Task 1 multi-GPU parallel + shard merge
+    │   └── eval_gemma_task1.py       # Gemma Task 1: multi-GPU parallel inference (12 × 11 scenarios)
     ├── task2/
-    │   ├── eval_gemma9b.py                      # Gemma Task 2 inference (single GPU)
-    │   ├── eval_gemma9b_parallel_all.py         # Gemma Task 2 multi-GPU parallel (4× L40S)
-    │   ├── eval_gemma9b_parallel_all_resume.py  # Resume Task 2 from partial shard outputs
-    │   └── launch.sh                            # Cluster env vars (set HF_TOKEN before use)
-    ├── analyze_table4.py                        # Table 4 inconsistency counts for Gemma
-    ├── analyze_alignment_gemma9b.py             # Full alignment analysis for Gemma
-    ├── eval_gemma_full_rate_adapted.py          # Alignment Rate (F1) for Gemma wide-format
-    ├── eval_dynamic_full_ranking_gemma_adapted.py  # Alignment Ranking for Gemma
-    └── eval_dynamic_full_distance_gemma_adapted.py # Alignment Distance (ℓ₁) for Gemma
+    │   ├── eval_gemma_task2.py       # Gemma Task 2: multi-GPU parallel inference + resume support
+    │   └── setup_env.sh              # Cluster environment variables (set HF_TOKEN before use)
+    └── gemma_eval/                   # Gemma evaluation scripts (ours)
+        ├── eval_alignment_rate.py    # Alignment Rate (F1)
+        ├── eval_alignment_distance.py# Alignment Distance (ℓ₁)
+        ├── eval_alignment_ranking.py # Alignment Ranking
+        ├── eval_table4.py            # Table 4 cross-task inconsistency counts
+        └── eval_alignment_full.py    # Combined alignment analysis (Rate + Distance + Ranking)
 ```
 
 ---
@@ -163,52 +161,42 @@ All scripts are in `src/dynamic/`. Run from that directory.
 cd src/dynamic
 
 # Task 1 — re-run value statement rating with current API
-python run_dynamic_t1.py
+python run_task1.py
 # Output: dynamic_gpt4omini_t1.csv  (shape: 1056 × 4)
 #         columns: country, topic, response, prompt_index
 
 # Task 2 — re-run pairwise action selection with current API (prompt_index=5)
-python run_dynamic_t2.py
+python run_task2.py
 # Output: dynamic_gpt4omini_t2.csv  (shape: ~14330 × 7)
 #         columns: country, topic, value, polarity, generation_prompt, model_choice, prompt_index
 # Error log: dynamic_gpt4omini_t2_errors.csv  (small number of malformed prompts from source data)
 ```
 
 **Important — Task 2 polarity convention for dynamic outputs:**
-The dynamic file uses `positive → 0, negative → 1` (opposite to the released static file). This was verified by `eval_dynamic_direction_check.py`. The evaluation scripts apply this convention automatically.
+The dynamic file uses `positive → 0, negative → 1` (opposite to the released static file). This was verified by `eval_direction_check.py`. The evaluation scripts apply this convention automatically.
 
 #### Gemma-2-9B-it — Local Multi-GPU Inference
-
-**Task 1** — deterministic decoding (temperature=0.0), full 12 countries × 11 topics:
-```bash
-cd src/tasks/task1
-python eval_llm_statement_gemma9b_full.py
-# Output: src/outputs/task1_gemma_statements_full.csv  (wide format: 132 rows × 10 cols)
-```
-
-Multi-GPU parallel version (4 shards, automatically merged):
-```bash
-python eval_parallel.py
-# Merged output: src/outputs/task1_gemma_statements_full_parallel.csv
-```
-
-**Task 2** — 4× NVIDIA L40S GPUs, temperature=0.2, top_p=0.95:
-```bash
-cd src/tasks/task2
-python eval_gemma9b_parallel_all.py
-# Shard outputs: src/outputs/task2_results_gemma9b_full_shard{0..3}.csv
-# Merged output: src/outputs/task2_results_gemma9b_full.csv
-```
-
-Resume from a partial run:
-```bash
-python eval_gemma9b_parallel_all_resume.py
-```
 
 **Pretrained model:** `google/gemma-2-9b-it`
 - Access: https://huggingface.co/google/gemma-2-9b-it (gated — requires HF account approval)
 - ~18 GB disk, loaded in `bfloat16` with `device_map="auto"`, seed=42
 - Hardware used: 4× NVIDIA L40S 48GB GPUs on UW Hyak cluster
+
+**Task 1** — 4 GPU shards, deterministic decoding (temperature=0.0), full 12 countries × 11 topics, automatically merges shards on completion:
+```bash
+cd src/tasks/task1
+python eval_gemma_task1.py
+# Shard outputs: src/outputs/task1_gemma_statements_full_shard{0..3}.csv
+# Merged output: src/outputs/task1_gemma_statements_full_parallel.csv
+```
+
+**Task 2** — 4× NVIDIA L40S GPUs, temperature=0.2, top_p=0.95. Supports resuming from a partial run automatically:
+```bash
+cd src/tasks/task2
+python eval_gemma_task2.py
+# Shard outputs: src/outputs/task2_results_gemma9b_full_shard{0..3}.csv
+# Merged output: src/outputs/task2_results_gemma9b_full.csv
+```
 
 ---
 
@@ -216,57 +204,57 @@ python eval_gemma9b_parallel_all_resume.py
 
 #### GPT-4o-mini Dynamic Evaluation
 
-All scripts read from the files generated by `run_dynamic_t1.py` and `run_dynamic_t2.py`. Run from `src/dynamic/`.
+All scripts read from files generated by `run_task1.py` and `run_task2.py`. Run from `src/dynamic/`.
 
 ```bash
 cd src/dynamic
 
-# Check/confirm Task 2 polarity direction convention
-python eval_dynamic_direction_check.py
+# (Optional) Confirm Task 2 polarity direction convention
+python eval_direction_check.py
 # Output: dynamic_direction_check_summary.csv
 
 # Alignment Rate (F1)
-python eval_dynamic_full_rate.py
+python eval_alignment_rate.py
 # Outputs: dynamic_full_country_results.csv, dynamic_full_t1_pd.csv, dynamic_full_t2_pd.csv
 
 # Alignment Distance (ℓ₁)
-python eval_dynamic_full_distance.py
+python eval_alignment_distance.py
 # Outputs: dynamic_full_distance_country.csv (12×56), dynamic_full_distance_topic.csv (11×56)
 #          dynamic_full_avg_distance_by_{country,topic,value_country,value_topic}.csv
 
 # Alignment Ranking
-python eval_dynamic_full_ranking.py
+python eval_alignment_ranking.py
 # Outputs: dynamic_full_ranking_{country,topic}.csv
 #          dynamic_full_ranking_{country,topic}_top{1,5}_counts.csv
 ```
 
 #### Gemma-2-9B-it Evaluation
 
-Update `T1_PATH` / `T2_PATH` at the top of each script to point to your output files, then run from `src/tasks/`.
+Update `T1_PATH` / `T2_PATH` at the top of each script to point to your output files, then run from `src/tasks/gemma_eval/`.
 
 ```bash
-cd src/tasks
+cd src/tasks/gemma_eval
 
 # Alignment Rate (F1)
-python eval_gemma_full_rate_adapted.py
-# Outputs: gemma_dynamic_full_country_results.csv, gemma_dynamic_full_t1_pd.csv, gemma_dynamic_full_t2_pd.csv
+python eval_alignment_rate.py
+# Outputs: gemma_full_country_results.csv, gemma_full_t1_pd.csv, gemma_full_t2_pd.csv
 
 # Alignment Distance (ℓ₁)
-python eval_dynamic_full_distance_gemma_adapted.py
+python eval_alignment_distance.py
 # Outputs: distance CSVs by country, topic, and value
 
 # Alignment Ranking
-python eval_dynamic_full_ranking_gemma_adapted.py
+python eval_alignment_ranking.py
 # Outputs: ranking CSVs (top-1 and top-5 counts by country and topic)
 
-# Table 4 Inconsistency Counts (cross-task agree/disagree misalignment)
-python analyze_table4.py
+# Table 4 cross-task inconsistency counts
+python eval_table4.py
 # Outputs to: src/outputs/table4_verify_gemma2_full/
 #   table4_summary.csv      — total misaligned counts and %
-#   task1_task2_joined.csv  — merged Task 1 & Task 2 binary labels
+#   task1_task2_joined.csv  — merged Task 1 & Task 2 binary labels per (country, topic, value)
 
-# Full alignment analysis (Rate + Distance + Ranking combined)
-python analyze_alignment_gemma9b.py
+# Combined alignment analysis (Rate + Distance + Ranking)
+python eval_alignment_full.py
 # Outputs to: src/outputs/alignment_analysis_gemma9b_corrected/
 ```
 
