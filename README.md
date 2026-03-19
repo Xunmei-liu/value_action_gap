@@ -1,73 +1,34 @@
-# Value Alignment in LLMs
-<!-- # value_action_data -->
-
-This repository includes codes for two papers presented in [EMNLP 2025](https://2025.emnlp.org/) regarding **value alignment in LLMs**:
-
-- [EMNLP 2025 Main](https://arxiv.org/pdf/2501.15463?): [Mind the Value-Action Gap: Do LLMs Act in Alignment with Their Values?](https://arxiv.org/pdf/2501.15463?)
-- [EMNLP 2025 WiNLP Workshop](https://arxiv.org/pdf/2409.09586): [ValueCompass: A Framework for Measuring Contextual Value Alignment Between Human and LLMs](https://arxiv.org/pdf/2409.09586)
-
-These two papers aim to answer the core concerning questions related to value alignment:
-- **RQ1**: *How can we systematically capture human values and evaluate the extent to which LLM aligns with them?* (Value Alignment between **Humans & LLMs**, [EMNLP 2025 WiNLP Workshop](https://arxiv.org/pdf/2409.09586))
-- **RQ2**: *To what extent do LLM-generated value statements align with their value-informed actions?* (Value Alignment between LLM's **value claim & the corresponding actions**, [EMNLP 2025 Main](https://arxiv.org/pdf/2501.15463?))
-
-## Overview
-
-
-To address **RQ1** -- *Human-AI Value Alignment* -- we propose **ValueCompass**, a framework for systematically measuring value alignment between LLMs and humans across contextual scenarios. See below figure for an overview. 
-
-<img src="figures/figure-valuecompass.png" width="58%" alt="Description">
-
-
-
-
-To address **RQ2** -- *LLM's Value-Action Alignment* -- we propose **ValueActionLens** Framework, associated with the VIA (Value-Informed Dataset) dataset, to assess the alignment between LLMs’ stated values & value-informed actions. See below figure for an example of GPT4o's Value-Action Gap. 
-
-<img src="figures/figure-value-action-gap.png" width="58%" alt="Description">
-
-
-
-## Evaluating Value Alignment
-
-To evaluate the value alignment in LLMs, codes are released in this directory: [Value-Action Alignment Tasks](https://github.com/huashen218/value_action_gap/tree/main/src/tasks).
-
-
-
-
-## VIA Dataset
-
-The full VIA dataset can be accessed in this directory: [Value-Informed Dataset (VIA)](https://github.com/huashen218/value_action_gap/tree/main/outputs/data_release)
-
-
-
----
-
-## Reproducibility: Reproducing ValueActionLens (CSE 517)
+# Reproducing ValueActionLens: Measuring the Value–Action Gap in LLMs
 
 **Authors:** Jahanvi Jeswani, Ziming Lin, Xunmei Liu (University of Washington)
 
-This section documents our reproduction of the central empirical claims of Shen et al. [2025] using two models:
+Reproducibility project for [Shen et al. (2025), "Mind the Value-Action Gap: Do LLMs Act in Alignment with Their Values?"](https://arxiv.org/pdf/2501.15463), EMNLP 2025.
+
+We reproduce the central empirical claims using two models:
 - **GPT-4o-mini** (OpenAI API, dynamic re-run) — scripts in `src/tasks/gpt_4o_mini_eval/`
 - **Gemma-2-9B-it** (local Hugging Face inference on UW Hyak cluster) — scripts in `src/tasks/`
 
+Original authors' repository: https://github.com/huashen218/value_action_gap
+
 ---
 
-### Installation & Setup
+## Installation & Setup
 
-#### 1. Clone this repository
+### 1. Clone this repository
 
 ```bash
 git clone https://github.com/Xunmei-liu/value_action_gap.git
 cd value_action_gap
 ```
 
-#### 2. Create and activate a virtual environment (recommended)
+### 2. Create and activate a virtual environment (recommended)
 
 ```bash
 python3 -m venv venv
 source venv/bin/activate   # On Windows: venv\Scripts\activate
 ```
 
-#### 3. Install dependencies
+### 3. Install dependencies
 
 ```bash
 pip install -r requirements.txt
@@ -79,7 +40,7 @@ For **local Gemma-2-9B-it inference** (requires CUDA-capable GPUs), additionally
 pip install torch transformers accelerate
 ```
 
-#### 4. Set up API keys
+### 4. Set up API keys
 
 For GPT-4o-mini:
 ```bash
@@ -93,7 +54,7 @@ source src/tasks/task2/setup_env.sh
 
 ---
 
-### Data Download
+## Data Download
 
 The VIA dataset is released in the original authors' repository. Clone it to get the data:
 
@@ -116,7 +77,7 @@ outputs/evaluation/gpt-4o-mini_t2.csv
 
 ---
 
-### Repository Structure (our additions)
+## Repository Structure (our additions)
 
 ```
 src/tasks/
@@ -127,38 +88,37 @@ src/tasks/
 │   ├── eval_alignment_distance.py    # Alignment Distance (ℓ₁)
 │   ├── eval_alignment_ranking.py     # Alignment Ranking
 │   └── eval_direction_check.py       # Diagnose Task 2 polarity convention
-└── tasks/
-    ├── task1/
-    │   └── eval_gemma_task1.py       # Gemma Task 1: multi-GPU parallel inference (12 × 11 scenarios)
-    ├── task2/
-    │   ├── eval_gemma_task2.py       # Gemma Task 2: multi-GPU parallel inference + resume support
-    │   └── setup_env.sh              # Cluster environment variables (set HF_TOKEN before use)
-    └── gemma_eval/                   # Gemma evaluation scripts (ours)
-        ├── eval_alignment_rate.py    # Alignment Rate (F1)
-        ├── eval_alignment_distance.py# Alignment Distance (ℓ₁)
-        ├── eval_alignment_ranking.py # Alignment Ranking
-        ├── eval_table4.py            # Table 4 cross-task inconsistency counts
-        └── eval_alignment_full.py    # Combined alignment analysis (Rate + Distance + Ranking)
+├── task1/
+│   └── eval_gemma_task1.py           # Gemma Task 1: multi-GPU parallel inference (12 × 11 scenarios)
+├── task2/
+│   ├── eval_gemma_task2.py           # Gemma Task 2: multi-GPU parallel inference + resume support
+│   └── setup_env.sh                  # Cluster environment variables (set HF_TOKEN before use)
+└── gemma_eval/                       # Gemma evaluation scripts (ours)
+    ├── eval_alignment_rate.py        # Alignment Rate (F1)
+    ├── eval_alignment_distance.py    # Alignment Distance (ℓ₁)
+    ├── eval_alignment_ranking.py     # Alignment Ranking
+    ├── eval_table4.py                # Table 4 cross-task inconsistency counts
+    └── eval_alignment_full.py        # Combined alignment analysis (Rate + Distance + Ranking)
 ```
 
 ---
 
-### Preprocessing
+## Preprocessing
 
 No standalone preprocessing step is required. The VIA dataset is used directly for inference. Format conversion from Gemma's wide-format outputs to the prompt-level format expected by evaluation scripts is handled internally within the evaluation scripts.
 
 ---
 
-### Inference (Generation)
+## Inference (Generation)
 
 > **Note:** This project is inference-only. No model training is performed.
 
-#### GPT-4o-mini — Dynamic Re-run
+### GPT-4o-mini — Dynamic Re-run
 
 All scripts are in `src/tasks/gpt_4o_mini_eval/`. Run from that directory.
 
 ```bash
-cd src/dynamic
+cd src/tasks/gpt_4o_mini_eval
 
 # Task 1 — re-run value statement rating with current API
 python run_task1.py
@@ -175,7 +135,7 @@ python run_task2.py
 **Important — Task 2 polarity convention for dynamic outputs:**
 The dynamic file uses `positive → 0, negative → 1` (opposite to the released static file). This was verified by `eval_direction_check.py`. The evaluation scripts apply this convention automatically.
 
-#### Gemma-2-9B-it — Local Multi-GPU Inference
+### Gemma-2-9B-it — Local Multi-GPU Inference
 
 **Pretrained model:** `google/gemma-2-9b-it`
 - Access: https://huggingface.co/google/gemma-2-9b-it (gated — requires HF account approval)
@@ -200,14 +160,14 @@ python eval_gemma_task2.py
 
 ---
 
-### Evaluation
+## Evaluation
 
-#### GPT-4o-mini Dynamic Evaluation
+### GPT-4o-mini Dynamic Evaluation
 
 All scripts read from files generated by `run_task1.py` and `run_task2.py`. Run from `src/tasks/gpt_4o_mini_eval/`.
 
 ```bash
-cd src/dynamic
+cd src/tasks/gpt_4o_mini_eval
 
 # (Optional) Confirm Task 2 polarity direction convention
 python eval_direction_check.py
@@ -228,7 +188,7 @@ python eval_alignment_ranking.py
 #          dynamic_full_ranking_{country,topic}_top{1,5}_counts.csv
 ```
 
-#### Gemma-2-9B-it Evaluation
+### Gemma-2-9B-it Evaluation
 
 Update `T1_PATH` / `T2_PATH` at the top of each script to point to your output files, then run from `src/tasks/gemma_eval/`.
 
@@ -266,7 +226,7 @@ Ours (full Gemma):   (A,D)=529,  (D,A)=671, Total=1200 (16.37%)
 
 ---
 
-### Results Summary
+## Results Summary
 
 | Model | Reproduced F1 | Paper's Reported F1 |
 |---|---|---|
@@ -277,6 +237,39 @@ Both models exhibit a nontrivial value–action gap with systematic variation ac
 
 ---
 
+---
+
+# Original Repository: Value Alignment in LLMs
+
+<!-- # value_action_data -->
+
+This repository includes codes for two papers presented in [EMNLP 2025](https://2025.emnlp.org/) regarding **value alignment in LLMs**:
+
+- [EMNLP 2025 Main](https://arxiv.org/pdf/2501.15463?): [Mind the Value-Action Gap: Do LLMs Act in Alignment with Their Values?](https://arxiv.org/pdf/2501.15463?)
+- [EMNLP 2025 WiNLP Workshop](https://arxiv.org/pdf/2409.09586): [ValueCompass: A Framework for Measuring Contextual Value Alignment Between Human and LLMs](https://arxiv.org/pdf/2409.09586)
+
+These two papers aim to answer the core concerning questions related to value alignment:
+- **RQ1**: *How can we systematically capture human values and evaluate the extent to which LLM aligns with them?* (Value Alignment between **Humans & LLMs**, [EMNLP 2025 WiNLP Workshop](https://arxiv.org/pdf/2409.09586))
+- **RQ2**: *To what extent do LLM-generated value statements align with their value-informed actions?* (Value Alignment between LLM's **value claim & the corresponding actions**, [EMNLP 2025 Main](https://arxiv.org/pdf/2501.15463?))
+
+## Overview
+
+To address **RQ1** -- *Human-AI Value Alignment* -- we propose **ValueCompass**, a framework for systematically measuring value alignment between LLMs and humans across contextual scenarios. See below figure for an overview.
+
+<img src="figures/figure-valuecompass.png" width="58%" alt="Description">
+
+To address **RQ2** -- *LLM's Value-Action Alignment* -- we propose **ValueActionLens** Framework, associated with the VIA (Value-Informed Dataset) dataset, to assess the alignment between LLMs' stated values & value-informed actions. See below figure for an example of GPT4o's Value-Action Gap.
+
+<img src="figures/figure-value-action-gap.png" width="58%" alt="Description">
+
+## Evaluating Value Alignment
+
+To evaluate the value alignment in LLMs, codes are released in this directory: [Value-Action Alignment Tasks](https://github.com/huashen218/value_action_gap/tree/main/src/tasks).
+
+## VIA Dataset
+
+The full VIA dataset can be accessed in this directory: [Value-Informed Dataset (VIA)](https://github.com/huashen218/value_action_gap/tree/main/outputs/data_release)
+
 ```bibtex
 @article{shen2024valuecompass,
     title={Valuecompass: A framework of fundamental values for human-ai alignment},
@@ -284,7 +277,6 @@ Both models exhibit a nontrivial value–action gap with systematic variation ac
     journal={arXiv preprint arXiv:2409.09586},
     year={2024}
 }
-
 
 @article{shen2025mind,
   title={Mind the Value-Action Gap: Do LLMs Act in Alignment with Their Values?},
