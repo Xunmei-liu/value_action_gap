@@ -6,7 +6,7 @@ Reproducibility project for [Shen et al. (2025), "Mind the Value-Action Gap: Do 
 
 We reproduce the central empirical claims using two models:
 - **GPT-4o-mini** (OpenAI API, dynamic re-run) — scripts in `src/tasks/gpt_4o_mini_eval/`
-- **Gemma-2-9B-it** (local Hugging Face inference on UW Hyak cluster) — scripts in `src/tasks/`
+- **Gemma-2-9B-it** (local Hugging Face inference on UW Hyak cluster) — scripts in `src/tasks/gemma_2_9b_eval/`
 
 Original authors' repository: https://github.com/huashen218/value_action_gap
 
@@ -47,9 +47,9 @@ For GPT-4o-mini:
 export OPENAI_API_KEY=<your_openai_api_key>
 ```
 
-For Gemma on the UW Hyak cluster, edit `src/tasks/task2/setup_env.sh` with your own HF token, then:
+For Gemma on the UW Hyak cluster, edit `src/tasks/gemma_2_9b_eval/setup_env.sh` with your own HF token, then:
 ```bash
-source src/tasks/task2/setup_env.sh
+source src/tasks/gemma_2_9b_eval/setup_env.sh
 ```
 
 ---
@@ -88,12 +88,10 @@ src/tasks/
 │   ├── eval_alignment_distance.py    # Alignment Distance (ℓ₁)
 │   ├── eval_alignment_ranking.py     # Alignment Ranking
 │   └── eval_direction_check.py       # Diagnose Task 2 polarity convention
-├── task1/
-│   └── eval_gemma_task1.py           # Gemma Task 1: multi-GPU parallel inference (12 × 11 scenarios)
-├── task2/
-│   ├── eval_gemma_task2.py           # Gemma Task 2: multi-GPU parallel inference + resume support
-│   └── setup_env.sh                  # Cluster environment variables (set HF_TOKEN before use)
-└── gemma_eval/                       # Gemma evaluation scripts (ours)
+└── gemma_2_9b_eval/                  # Gemma-2-9B-it local reproduction (ours)
+    ├── run_task1.py                  # Task 1 multi-GPU parallel inference (12 × 11 scenarios)
+    ├── run_task2.py                  # Task 2 multi-GPU parallel inference + resume support
+    ├── setup_env.sh                  # Cluster environment variables (set HF_TOKEN before use)
     ├── eval_alignment_rate.py        # Alignment Rate (F1)
     ├── eval_alignment_distance.py    # Alignment Distance (ℓ₁)
     ├── eval_alignment_ranking.py     # Alignment Ranking
@@ -144,16 +142,16 @@ The dynamic file uses `positive → 0, negative → 1` (opposite to the released
 
 **Task 1** — 4 GPU shards, deterministic decoding (temperature=0.0), full 12 countries × 11 topics, automatically merges shards on completion:
 ```bash
-cd src/tasks/task1
-python eval_gemma_task1.py
+cd src/tasks/gemma_2_9b_eval
+python run_task1.py
 # Shard outputs: src/outputs/task1_gemma_statements_full_shard{0..3}.csv
 # Merged output: src/outputs/task1_gemma_statements_full_parallel.csv
 ```
 
 **Task 2** — 4× NVIDIA L40S GPUs, temperature=0.2, top_p=0.95. Supports resuming from a partial run automatically:
 ```bash
-cd src/tasks/task2
-python eval_gemma_task2.py
+cd src/tasks/gemma_2_9b_eval
+python run_task2.py
 # Shard outputs: src/outputs/task2_results_gemma9b_full_shard{0..3}.csv
 # Merged output: src/outputs/task2_results_gemma9b_full.csv
 ```
@@ -190,10 +188,10 @@ python eval_alignment_ranking.py
 
 ### Gemma-2-9B-it Evaluation
 
-Update `T1_PATH` / `T2_PATH` at the top of each script to point to your output files, then run from `src/tasks/gemma_eval/`.
+Update `T1_PATH` / `T2_PATH` at the top of each script to point to your output files, then run from `src/tasks/gemma_2_9b_eval/`.
 
 ```bash
-cd src/tasks/gemma_eval
+cd src/tasks/gemma_2_9b_eval
 
 # Alignment Rate (F1)
 python eval_alignment_rate.py
