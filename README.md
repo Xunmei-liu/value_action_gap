@@ -2,6 +2,8 @@
 
 **Authors:** Jahanvi Jeswani, Ziming Lin, Xunmei Liu (University of Washington)
 
+**Contributors:** [@Xunmei-liu](https://github.com/Xunmei-liu)
+
 Reproducibility project for [Shen et al. (2025), "Mind the Value-Action Gap: Do LLMs Act in Alignment with Their Values?"](https://arxiv.org/pdf/2501.15463), EMNLP 2025.
 
 We reproduce the central empirical claims using two models:
